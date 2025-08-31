@@ -25,8 +25,8 @@ This project provides an automated system to monitor doors and detect dogs using
 1. Clone the repository:
 
 ```bash
-git clone <your-repo-url>
-cd <your-project-folder>
+git clone https://github.com/toshuiit/yolo-monitoring.git
+cd yolo-monitoring
 ```
 
 2. Install dependencies:
@@ -48,30 +48,33 @@ label-studio start
 1. Copy service files to `/etc/systemd/system/`:
 
 ```bash
-sudo cp dog_detection.service /etc/systemd/system/
-sudo cp door_monitor.service /etc/systemd/system/
+sudo cp dog_live_kd.service /etc/systemd/system/
+sudo cp dog_live_rm101.service /etc/systemd/system/
+sudo cp door_open.service /etc/systemd/system/
 ```
 
 2. Reload systemd and enable services:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable dog_detection.service
-sudo systemctl enable door_monitor.service
+sudo systemctl enable dog_live_kd.service
+sudo systemctl enable dog_live_rm101.service
+sudo systemctl enable door_open.service
 ```
 
 3. Start services:
 
 ```bash
-sudo systemctl start dog_detection.service
-sudo systemctl start door_monitor.service
+sudo systemctl start dog_live_kd.service
+sudo systemctl start dog_live_rm101.service
+sudo systemctl start door_open.service
 ```
-
-4. Check service status:
+4. Set Permissions:
 
 ```bash
-sudo systemctl status dog_detection.service
-sudo systemctl status door_monitor.service
+chmod +x start_dog_live_kd.sh
+chmod +x start_dog_live_rm101.sh
+chmod +x start_door_open.sh
 ```
 
 ## Usage
@@ -80,6 +83,3 @@ sudo systemctl status door_monitor.service
 - Run the systemd services to continuously monitor video streams.
 - Admins receive alerts via email or preferred notification channel when violations occur.
 
-## License
-
-This project is licensed under the MIT License.
