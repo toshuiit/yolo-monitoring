@@ -1,0 +1,16 @@
+[Unit]
+Description=Door Handle Monitor (Headless)
+After=network.target
+
+[Service]
+Type=simple
+User=admin
+WorkingDirectory=/data/door-monitoring
+ExecStart=/data/door-monitoring/venv/bin/python3 /data/door-monitoring/door_open.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

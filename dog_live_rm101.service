@@ -1,0 +1,15 @@
+[Unit]
+Description=Dog Monitoring Live Stream Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/data/door-monitoring/start_dog_live_rm101.sh
+WorkingDirectory=/data/door-monitoring
+Restart=always
+RestartSec=5
+User=root
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=multi-user.target
