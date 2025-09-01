@@ -9,17 +9,18 @@ from email_alert import send_email_alert
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp|loglevel;quiet"
 
 # === CONFIGURATION ===
-stream_url = "rtsp://username:password@172.X.X.X:554/cam/realmonitor?channel=1&subtype=0"
+stream_url = "rtsp://user:password@172.X.X.X:554/cam/realmonitor?channel=1&subtype=0"
 handle_roi_norm = {"x": 44.76, "y": 41.48, "width": 11.31, "height": 5.20}
 
 frame_interval_seconds = 0.5
-violation_duration_threshold = 120    # 2 minutes
-alert_cooldown = 1200                 # 20 minutes
+violation_duration_threshold = 120   # 2 minutes
+alert_cooldown = 1200                # 20 minutes
 
 # Directories for logs and snapshots
 log_file = "/data/door-monitoring/door_open.log"
 snapshot_dir = "/data/door-monitoring/snapshots"
 os.makedirs(snapshot_dir, exist_ok=True)
+
 
 # === LOG HELPER ===
 def log(msg):
@@ -29,28 +30,15 @@ def log(msg):
     with open(log_file, 'a') as f:
         f.write(full_msg + "\n")
 
+
 # === ROI UTILITY ===
 def get_handle_roi(frame_w, frame_h):
-    x = int(handle_roi_norm["x"]/100 * frame_w)
-    y = int(handle_roi_norm["y"]/100 * frame_h)
-    w = int(handle_roi_norm["width"]/100 * frame_w)
-    h = int(handle_roi_norm["height"]/100 * frame_h)
+    x = int(handle_roi_norm["x"] / 100 * frame_w)
+    y = int(handle_roi_norm["y"] / 100 * frame_h)
+    w = int(handle_roi_norm["width"] / 100 * frame_w)
+    h = int(handle_roi_norm["height"] / 100 * frame_h)
     return (x, y, x + w, y + h)
 
-# === PERSON DETECTION UTILITY ===
-def is_person_in_front_of_handle(frame):
-    # Load the pre-trained body detection classifier (Haar Cascade)
-    person_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + "haarcascade_fullbody.xml")
-    
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    bodies = person_cascade.detectMultiScale(gray, 1.1, 1)
-
-    for (x, y, w, h) in bodies:
-        # Check if the body is in front of the door handle area
-        handle_roi = get_handle_roi(frame.shape[1], frame.shape[0])
-        if x < handle_roi[2] and y < handle_roi[3] and x + w > handle_roi[0] and y + h > handle_roi[1]:
-            return True
-    return False
 
 # === THREADED VIDEO READER ===
 class VideoStreamThread:
@@ -58,6 +46,7 @@ class VideoStreamThread:
         self.cap = cv2.VideoCapture(src_url, cv2.CAP_FFMPEG)
         if not self.cap.isOpened():
             raise IOError("Cannot open stream")
+
         self.ret, self.frame = self.cap.read()
         self.running = True
         threading.Thread(target=self._reader, daemon=True).start()
@@ -75,6 +64,7 @@ class VideoStreamThread:
         self.running = False
         self.cap.release()
 
+
 # === INITIALIZATION ===
 try:
     vs = VideoStreamThread(stream_url)
@@ -89,7 +79,8 @@ violation_start_time = None
 violation_active = False
 last_time = time.time()
 
-log(" Door handle monitoring started (headless).")
+log("🚪 Door handle monitoring started (headless).")
+
 
 # === MAIN LOOP ===
 try:
@@ -114,12 +105,14 @@ try:
         _, thresh = cv2.threshold(fg, 244, 255, cv2.THRESH_BINARY)
         dilated = cv2.dilate(thresh, None, iterations=2)
         contours, _ = cv2.findContours(dilated, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        motion = any(cv2.contourArea(cnt) > 100 for cnt in contours)
 
+        motion = any(cv2.contourArea(cnt) > 100 for cnt in contours)
         current_dt = datetime.now()
 
-        # Check for motion and make sure no person is in front of the handle
-        if motion and not is_person_in_front_of_handle(frame):
+        if not motion:
+            violation_start_time = None
+            violation_active = False
+        else:
             if violation_start_time is None:
                 violation_start_time = current_dt
             elif (current_dt - violation_start_time).total_seconds() >= violation_duration_threshold:
@@ -133,10 +126,7 @@ try:
                     fname = current_dt.strftime("violation_%Y%m%d_%H%M%S.jpg")
                     path = os.path.join(snapshot_dir, fname)
                     cv2.imwrite(path, frame)
-                    log(f" Snapshot saved: {path}")
-        else:
-            violation_start_time = None
-            violation_active = False
+                    log(f"📷 Snapshot saved: {path}")
 
 except KeyboardInterrupt:
     log("Interrupt received. Shutting down...")
